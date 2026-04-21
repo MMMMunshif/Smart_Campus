@@ -17,4 +17,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDate bookingDate,
             List<BookingStatus> statuses
     );
+
+    List<Booking> findByStatus(BookingStatus status);
+
+    List<Booking> findByResourceNameContainingIgnoreCase(String resourceName);
+
+    List<Booking> findByBookingDate(LocalDate bookingDate);
 }

@@ -1,6 +1,7 @@
 package com.smartcampus.backend.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import com.smartcampus.backend.enums.BookingStatus;
@@ -45,4 +46,15 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     private BookingStatus status;
+
+
+    private String userEmail;
+
+    private String remarks;
+
+    private String adminNote;
+
+   private LocalDateTime createdAt;
+
+   private LocalDateTime updatedAt;
 }
