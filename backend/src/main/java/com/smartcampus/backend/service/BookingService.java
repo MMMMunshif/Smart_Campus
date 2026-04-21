@@ -10,10 +10,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import com.smartcampus.backend.dto.BookingDashboardStats;
 import com.smartcampus.backend.entity.Booking;
 import com.smartcampus.backend.enums.BookingStatus;
 import com.smartcampus.backend.repository.BookingRepository;
-
 @Service
 public class BookingService {
 
@@ -47,6 +47,10 @@ public class BookingService {
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
     }
+
+    public List<Booking> getBookingsByUserEmail(String userEmail) {
+    return bookingRepository.findByUserEmail(userEmail);
+}
 
     public List<Booking> getBookingsByStatus(BookingStatus status) {
         return bookingRepository.findByStatus(status);
@@ -106,4 +110,24 @@ public class BookingService {
 
         return bookingRepository.save(booking);
     }
+
+    public BookingDashboardStats getAdminDashboardStats() {
+    long total = bookingRepository.count();
+    long pending = bookingRepository.countByStatus(BookingStatus.PENDING);
+    long approved = bookingRepository.countByStatus(BookingStatus.APPROVED);
+    long rejected = bookingRepository.countByStatus(BookingStatus.REJECTED);
+    long cancelled = bookingRepository.countByStatus(BookingStatus.CANCELLED);
+
+    return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
+}
+
+public BookingDashboardStats getUserDashboardStats(String userEmail) {
+    long total = bookingRepository.countByUserEmail(userEmail);
+    long pending = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.PENDING);
+    long approved = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.APPROVED);
+    long rejected = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.REJECTED);
+    long cancelled = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.CANCELLED);
+
+    return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
+}
 }

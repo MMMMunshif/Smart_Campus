@@ -43,3 +43,22 @@ export const cancelBooking = async (id) => {
   const response = await axios.put(`${API_BASE_URL}/${id}/cancel`);
   return response.data;
 };
+
+export const getBookingsByUserEmail = async (email) => {
+  const response = await axios.get(`${API_BASE_URL}/user`, {
+    params: { email },
+  });
+  return response.data;
+};
+
+export const getAdminDashboardStats = async () => {
+  const response = await axios.get(`${API_BASE_URL}/dashboard/admin`);
+  return response.data;
+};
+
+export const getUserDashboardStats = async (email) => {
+  const response = await axios.get(`${API_BASE_URL}/dashboard/user`, {
+    params: { email },
+  });
+  return response.data;
+};

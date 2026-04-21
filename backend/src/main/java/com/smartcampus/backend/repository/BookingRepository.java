@@ -23,4 +23,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByResourceNameContainingIgnoreCase(String resourceName);
 
     List<Booking> findByBookingDate(LocalDate bookingDate);
+
+    List<Booking> findByUserEmail(String userEmail);
+
+    long countByStatus(BookingStatus status);
+
+    long countByUserEmail(String userEmail);
+
+    long countByUserEmailAndStatus(String userEmail, BookingStatus status);
 }

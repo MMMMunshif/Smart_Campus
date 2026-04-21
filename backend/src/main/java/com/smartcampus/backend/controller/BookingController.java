@@ -1,5 +1,8 @@
 package com.smartcampus.backend.controller;
 
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -12,12 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.smartcampus.backend.dto.BookingDashboardStats;
 import com.smartcampus.backend.entity.Booking;
 import com.smartcampus.backend.enums.BookingStatus;
 import com.smartcampus.backend.service.BookingService;
-
-import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -73,4 +74,20 @@ public class BookingController {
     public Booking cancelBooking(@PathVariable Long id) {
         return bookingService.cancelBooking(id);
     }
+
+    @GetMapping("/user")
+public List<Booking> getBookingsByUserEmail(@RequestParam String email) {
+    return bookingService.getBookingsByUserEmail(email);
+}
+
+@GetMapping("/dashboard/admin")
+public BookingDashboardStats getAdminDashboardStats() {
+    return bookingService.getAdminDashboardStats();
+}
+
+@GetMapping("/dashboard/user")
+public BookingDashboardStats getUserDashboardStats(@RequestParam String email) {
+    return bookingService.getUserDashboardStats(email);
+}
+
 }
