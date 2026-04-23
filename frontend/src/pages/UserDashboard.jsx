@@ -16,6 +16,7 @@ import {
   ArrowRight,
   CalendarDays,
   Building2,
+  BellRing,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -48,7 +49,6 @@ function UserDashboard() {
   });
 
   const [upcomingBookings, setUpcomingBookings] = useState([]);
-  const [statsLoading, setStatsLoading] = useState(true);
   const [upcomingLoading, setUpcomingLoading] = useState(true);
 
   useEffect(() => {
@@ -56,13 +56,10 @@ function UserDashboard() {
       if (!user?.email) return;
 
       try {
-        setStatsLoading(true);
         const data = await getUserDashboardStats(user.email);
         setStats(data);
       } catch {
         toast.error("Failed to load booking statistics");
-      } finally {
-        setStatsLoading(false);
       }
     };
 
@@ -119,6 +116,55 @@ function UserDashboard() {
         return `${base} bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300`;
     }
   };
+
+  const reminderBanner = useMemo(() => {
+    if (!upcomingBookings.length) return null;
+
+    const nearest = upcomingBookings[0];
+    const today = new Date();
+    const bookingDate = new Date(nearest.bookingDate);
+
+    const todayOnly = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    const bookingOnly = new Date(
+      bookingDate.getFullYear(),
+      bookingDate.getMonth(),
+      bookingDate.getDate()
+    );
+
+    const diffDays = Math.round(
+      (bookingOnly - todayOnly) / (1000 * 60 * 60 * 24)
+    );
+
+    let message = `Your next booking is for ${nearest.resourceName} on ${nearest.bookingDate} at ${nearest.startTime?.slice(
+      0,
+      5
+    )}.`;
+
+    if (diffDays === 0) {
+      message = `You have a booking today for ${nearest.resourceName} at ${nearest.startTime?.slice(
+        0,
+        5
+      )}.`;
+    } else if (diffDays === 1) {
+      message = `You have a booking tomorrow for ${nearest.resourceName} at ${nearest.startTime?.slice(
+        0,
+        5
+      )}.`;
+    }
+
+    if (nearest.status === "PENDING") {
+      message += " It is still pending approval.";
+    }
+
+    return {
+      message,
+      status: nearest.status,
+    };
+  }, [upcomingBookings]);
 
   return (
     <AppLayout title="Dashboard" role="USER">
@@ -184,6 +230,25 @@ function UserDashboard() {
                   Your request for <strong>{user?.requestedRole}</strong> access
                   was not approved. You can continue using the system with normal
                   user access.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {reminderBanner && (
+          <div className="rounded-[2rem] border border-sky-200 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-900/20 p-5 shadow-lg transition-colors duration-300">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-sky-100 dark:bg-sky-900/30 p-3 text-sky-700 dark:text-sky-400">
+                <BellRing size={22} />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold text-sky-800 dark:text-sky-300">
+                  Booking Reminder
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-sky-700 dark:text-sky-400">
+                  {reminderBanner.message}
                 </p>
               </div>
             </div>
