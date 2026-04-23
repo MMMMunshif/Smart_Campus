@@ -12,6 +12,7 @@ import {
   FileText,
   Building2,
   AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 
 function BookingPage() {
@@ -61,7 +62,7 @@ function BookingPage() {
         });
 
         setResources(filteredResources);
-      } catch (error) {
+      } catch {
         toast.error("Failed to load available resources");
       } finally {
         setLoadingResources(false);
@@ -88,19 +89,92 @@ function BookingPage() {
     [resources, formData.resourceName]
   );
 
+  const today = new Date().toISOString().split("T")[0];
+
   const capacityExceeded =
     selectedResource &&
     formData.expectedAttendees &&
     Number(formData.expectedAttendees) > Number(selectedResource.capacity);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const invalidAttendeeCount =
+    formData.expectedAttendees && Number(formData.expectedAttendees) <= 0;
+
+  const invalidTimeRange =
+    formData.startTime &&
+    formData.endTime &&
+    formData.startTime >= formData.endTime;
+
+  const validateBeforeSubmit = () => {
+    if (!formData.resourceName) {
+      toast.error("Please select a resource");
+      return false;
+    }
+
+    if (!formData.bookingDate) {
+      toast.error("Please select a booking date");
+      return false;
+    }
+
+    if (formData.bookingDate < today) {
+      toast.error("Booking date cannot be in the past");
+      return false;
+    }
+
+    if (!formData.startTime || !formData.endTime) {
+      toast.error("Please select both start time and end time");
+      return false;
+    }
+
+    if (invalidTimeRange) {
+      toast.error("End time must be later than start time");
+      return false;
+    }
+
+    if (!formData.expectedAttendees) {
+      toast.error("Please enter expected attendees");
+      return false;
+    }
+
+    if (invalidAttendeeCount) {
+      toast.error("Expected attendees must be greater than 0");
+      return false;
+    }
 
     if (capacityExceeded) {
       toast.error(
         `Expected attendees exceed the selected resource capacity of ${selectedResource.capacity}.`
       );
+      return false;
+    }
+
+    if (!formData.purpose.trim()) {
+      toast.error("Please enter the booking purpose");
+      return false;
+    }
+
+    return true;
+  };
+
+  const getErrorMessage = (error) => {
+    const errorData = error?.response?.data;
+
+    if (typeof errorData === "string") {
+      return errorData;
+    }
+
+    return (
+      errorData?.message ||
+      errorData?.error ||
+      error?.message ||
+      "Failed to create booking. Check conflicts or input details."
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (!validateBeforeSubmit()) {
       setLoading(false);
       return;
     }
@@ -108,6 +182,8 @@ function BookingPage() {
     try {
       const payload = {
         ...formData,
+        purpose: formData.purpose.trim(),
+        remarks: formData.remarks.trim(),
         expectedAttendees: Number(formData.expectedAttendees),
         startTime: `${formData.startTime}:00`,
         endTime: `${formData.endTime}:00`,
@@ -128,10 +204,7 @@ function BookingPage() {
         remarks: "",
       }));
     } catch (error) {
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to create booking. Check conflicts or input details."
-      );
+      toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -149,12 +222,12 @@ function BookingPage() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 rounded-[2rem] bg-white p-8 shadow-xl border border-slate-200">
+          <div className="xl:col-span-2 rounded-[2rem] bg-white dark:bg-slate-900 p-8 shadow-xl border border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                 Booking Details
               </h2>
-              <p className="mt-2 text-slate-500">
+              <p className="mt-2 text-slate-500 dark:text-slate-400">
                 Fill in the details below to submit your booking request.
               </p>
             </div>
@@ -165,7 +238,7 @@ function BookingPage() {
                   name="userName"
                   value={formData.userName}
                   readOnly
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 outline-none"
+                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-700 dark:text-slate-300 outline-none"
                   placeholder="User Name"
                 />
 
@@ -173,19 +246,19 @@ function BookingPage() {
                   name="userEmail"
                   value={formData.userEmail}
                   readOnly
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 outline-none"
+                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-700 dark:text-slate-300 outline-none"
                   placeholder="User Email"
                 />
 
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Select Resource
                   </label>
                   <select
                     name="resourceName"
                     value={formData.resourceName}
                     onChange={handleChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-sky-400"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-800 dark:text-white outline-none focus:border-sky-400"
                     required
                   >
                     <option value="">
@@ -202,7 +275,7 @@ function BookingPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Booking Date
                   </label>
                   <div className="relative">
@@ -213,16 +286,17 @@ function BookingPage() {
                     <input
                       type="date"
                       name="bookingDate"
+                      min={today}
                       value={formData.bookingDate}
                       onChange={handleChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-800 outline-none focus:border-sky-400"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-11 pr-4 py-3 text-slate-800 dark:text-white outline-none focus:border-sky-400"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Expected Attendees
                   </label>
                   <div className="relative">
@@ -232,21 +306,29 @@ function BookingPage() {
                     />
                     <input
                       type="number"
+                      min="1"
                       name="expectedAttendees"
                       value={formData.expectedAttendees}
                       onChange={handleChange}
-                      className={`w-full rounded-2xl border bg-white pl-11 pr-4 py-3 text-slate-800 outline-none ${
-                        capacityExceeded
-                          ? "border-rose-300 focus:border-rose-400"
-                          : "border-slate-200 focus:border-sky-400"
+                      className={`w-full rounded-2xl border bg-white dark:bg-slate-800 pl-11 pr-4 py-3 text-slate-800 dark:text-white outline-none ${
+                        capacityExceeded || invalidAttendeeCount
+                          ? "border-rose-300 focus:border-rose-400 dark:border-rose-700"
+                          : "border-slate-200 dark:border-slate-700 focus:border-sky-400"
                       }`}
                       placeholder="Enter attendee count"
                       required
                     />
                   </div>
 
-                  {capacityExceeded && (
-                    <div className="mt-3 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  {invalidAttendeeCount && (
+                    <div className="mt-3 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-400">
+                      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                      <span>Expected attendees must be greater than 0.</span>
+                    </div>
+                  )}
+
+                  {capacityExceeded && !invalidAttendeeCount && (
+                    <div className="mt-3 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-400">
                       <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                       <span>
                         Expected attendees exceed the selected resource capacity
@@ -257,7 +339,7 @@ function BookingPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Start Time
                   </label>
                   <div className="relative">
@@ -270,14 +352,18 @@ function BookingPage() {
                       name="startTime"
                       value={formData.startTime}
                       onChange={handleChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-800 outline-none focus:border-sky-400"
+                      className={`w-full rounded-2xl border bg-white dark:bg-slate-800 pl-11 pr-4 py-3 text-slate-800 dark:text-white outline-none ${
+                        invalidTimeRange
+                          ? "border-rose-300 focus:border-rose-400 dark:border-rose-700"
+                          : "border-slate-200 dark:border-slate-700 focus:border-sky-400"
+                      }`}
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     End Time
                   </label>
                   <div className="relative">
@@ -290,14 +376,25 @@ function BookingPage() {
                       name="endTime"
                       value={formData.endTime}
                       onChange={handleChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-800 outline-none focus:border-sky-400"
+                      className={`w-full rounded-2xl border bg-white dark:bg-slate-800 pl-11 pr-4 py-3 text-slate-800 dark:text-white outline-none ${
+                        invalidTimeRange
+                          ? "border-rose-300 focus:border-rose-400 dark:border-rose-700"
+                          : "border-slate-200 dark:border-slate-700 focus:border-sky-400"
+                      }`}
                       required
                     />
                   </div>
                 </div>
 
+                {invalidTimeRange && (
+                  <div className="md:col-span-2 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-400">
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                    <span>End time must be later than start time.</span>
+                  </div>
+                )}
+
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Purpose
                   </label>
                   <div className="relative">
@@ -309,7 +406,7 @@ function BookingPage() {
                       name="purpose"
                       value={formData.purpose}
                       onChange={handleChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-800 outline-none focus:border-sky-400"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-11 pr-4 py-3 text-slate-800 dark:text-white outline-none focus:border-sky-400"
                       placeholder="Purpose of booking"
                       required
                     />
@@ -318,7 +415,7 @@ function BookingPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Remarks
                 </label>
                 <textarea
@@ -326,15 +423,20 @@ function BookingPage() {
                   value={formData.remarks}
                   onChange={handleChange}
                   rows="4"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-sky-400"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-800 dark:text-white outline-none focus:border-sky-400"
                   placeholder="Add any extra notes for the booking request"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={loading || capacityExceeded}
-                className="w-full rounded-2xl bg-slate-900 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-60"
+                disabled={
+                  loading ||
+                  capacityExceeded ||
+                  invalidAttendeeCount ||
+                  invalidTimeRange
+                }
+                className="w-full rounded-2xl bg-slate-900 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-60 dark:bg-sky-600 dark:hover:bg-sky-700"
               >
                 {loading ? "Submitting Booking..." : "Submit Booking Request"}
               </button>
@@ -342,27 +444,27 @@ function BookingPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[2rem] bg-white p-6 shadow-xl border border-slate-200">
-              <h3 className="text-xl font-bold text-slate-800 mb-4">
+            <div className="rounded-[2rem] bg-white dark:bg-slate-900 p-6 shadow-xl border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">
                 Resource Preview
               </h3>
 
               {selectedResource ? (
                 <div className="space-y-4">
-                  <div className="flex h-44 w-full items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100">
+                  <div className="flex h-44 w-full items-center justify-center rounded-2xl bg-sky-50 dark:bg-slate-800 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-slate-700">
                     <Building2 size={52} />
                   </div>
 
                   <div>
-                    <h4 className="text-lg font-bold text-slate-800">
+                    <h4 className="text-lg font-bold text-slate-800 dark:text-white">
                       {selectedResource.resourceName}
                     </h4>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {selectedResource.resourceType}
                     </p>
                   </div>
 
-                  <div className="space-y-2 text-sm text-slate-600">
+                  <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
                     <div className="flex items-center gap-2">
                       <MapPin size={16} className="text-sky-500" />
                       <span>{selectedResource.location}</span>
@@ -372,26 +474,26 @@ function BookingPage() {
                       <span>Capacity: {selectedResource.capacity}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users size={16} className="text-sky-500" />
+                      <CheckCircle2 size={16} className="text-sky-500" />
                       <span>Allowed for: {selectedResource.allowedUserType}</span>
                     </div>
                   </div>
 
-                  <p className="text-sm leading-6 text-slate-600">
+                  <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                     {selectedResource.description || "No description available."}
                   </p>
 
                   <div className="space-y-3">
-                    <span className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                    <span className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
                       {selectedResource.availabilityStatus}
                     </span>
 
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       Maximum supported attendees: {selectedResource.capacity}
                     </p>
 
                     {capacityExceeded && (
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-400">
                         This resource cannot accommodate your selected attendee
                         count.
                       </div>
@@ -399,20 +501,21 @@ function BookingPage() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl bg-slate-50 p-5 text-slate-500">
+                <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-5 text-slate-500 dark:text-slate-400">
                   Select an available resource to preview its details here.
                 </div>
               )}
             </div>
 
-            <div className="rounded-[2rem] bg-white p-6 shadow-xl border border-slate-200">
-              <h3 className="text-xl font-bold text-slate-800 mb-3">
+            <div className="rounded-[2rem] bg-white dark:bg-slate-900 p-6 shadow-xl border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">
                 Booking Tips
               </h3>
-              <ul className="space-y-3 text-sm leading-6 text-slate-600">
+              <ul className="space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
                 <li>Choose a resource suitable for your audience size.</li>
                 <li>Only resources available for your user type will appear.</li>
-                <li>Make sure your selected date and time are correct.</li>
+                <li>Booking date cannot be in the past.</li>
+                <li>End time must be later than start time.</li>
                 <li>Conflicting bookings are blocked automatically.</li>
                 <li>Attendee count must not exceed resource capacity.</li>
               </ul>
