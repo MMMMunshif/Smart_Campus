@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.smartcampus.backend.dto.BookingDashboardStats;
 import com.smartcampus.backend.entity.Booking;
 import com.smartcampus.backend.enums.BookingStatus;
+import com.smartcampus.backend.repository.BookingRepository;
 import com.smartcampus.backend.service.BookingService;
 
 @RestController
@@ -27,6 +28,9 @@ public class BookingController {
 
     @Autowired
     private BookingService bookingService;
+
+    @Autowired
+    private BookingRepository bookingRepository;
 
     @PostMapping
     public Booking createBooking(@RequestBody Booking booking) {
@@ -76,18 +80,51 @@ public class BookingController {
     }
 
     @GetMapping("/user")
-public List<Booking> getBookingsByUserEmail(@RequestParam String email) {
-    return bookingService.getBookingsByUserEmail(email);
-}
+    public List<Booking> getBookingsByUserEmail(@RequestParam String email) {
+        return bookingService.getBookingsByUserEmail(email);
+    }
 
-@GetMapping("/dashboard/admin")
-public BookingDashboardStats getAdminDashboardStats() {
-    return bookingService.getAdminDashboardStats();
-}
+    @GetMapping("/dashboard/admin")
+    public BookingDashboardStats getAdminDashboardStats() {
+        return bookingService.getAdminDashboardStats();
+    }
 
-@GetMapping("/dashboard/user")
-public BookingDashboardStats getUserDashboardStats(@RequestParam String email) {
-    return bookingService.getUserDashboardStats(email);
-}
+    @GetMapping("/dashboard/user")
+    public BookingDashboardStats getUserDashboardStats(@RequestParam String email) {
+        return bookingService.getUserDashboardStats(email);
+    }
 
+    @GetMapping("/filter")
+    public List<Booking> filterBookings(
+            @RequestParam(required = false) String userEmail,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String bookingDate,
+            @RequestParam(required = false) String resourceName
+    ) {
+        BookingStatus bookingStatus = null;
+        LocalDate parsedDate = null;
+
+        if (status != null && !status.isBlank()) {
+            bookingStatus = BookingStatus.valueOf(status.toUpperCase());
+        }
+
+        if (bookingDate != null && !bookingDate.isBlank()) {
+            parsedDate = LocalDate.parse(bookingDate);
+        }
+
+        String cleanUserEmail = (userEmail != null && !userEmail.isBlank()) ? userEmail : null;
+        String cleanResourceName = (resourceName != null && !resourceName.isBlank()) ? resourceName : null;
+
+        return bookingRepository.filterBookings(
+                cleanUserEmail,
+                bookingStatus,
+                parsedDate,
+                cleanResourceName
+        );
+    }
+
+    @GetMapping("/upcoming")
+     public List<Booking> getUpcomingBookings(@RequestParam String email) {
+    return bookingService.getUpcomingBookings(email);
+   }
 }

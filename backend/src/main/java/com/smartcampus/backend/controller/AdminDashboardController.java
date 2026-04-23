@@ -1,18 +1,20 @@
 package com.smartcampus.backend.controller;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.smartcampus.backend.entity.Booking;
+import com.smartcampus.backend.entity.Resource;
+import com.smartcampus.backend.entity.Ticket;
+import com.smartcampus.backend.entity.User;
 import com.smartcampus.backend.repository.BookingRepository;
 import com.smartcampus.backend.repository.ResourceRepository;
 import com.smartcampus.backend.repository.TicketRepository;
 import com.smartcampus.backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -33,33 +35,51 @@ public class AdminDashboardController {
 
     @GetMapping("/dashboard-summary")
     public Map<String, Object> getSummary() {
-
         Map<String, Object> map = new HashMap<>();
 
-        map.put("totalUsers", userRepository.count());
-        map.put("totalResources", resourceRepository.count());
-        map.put("totalBookings", bookingRepository.count());
-        map.put("totalTickets", ticketRepository.count());
+        List<User> users = userRepository.findAll();
+        List<Resource> resources = resourceRepository.findAll();
+        List<Booking> bookings = bookingRepository.findAll();
+        List<Ticket> tickets = ticketRepository.findAll();
 
-        map.put("pendingRoleRequests",
-                userRepository.findAll()
-                        .stream()
-                        .filter(u -> u.getRequestedRole() != null
-                                && u.getRequestedRole() != u.getRole())
-                        .count()
-        );
+        map.put("totalUsers", users.size());
+        map.put("totalResources", resources.size());
+        map.put("totalBookings", bookings.size());
+        map.put("totalTickets", tickets.size());
 
-        map.put("latestUsers",
-                userRepository.findAll().stream().limit(5).toList()
-        );
+        long pendingRoleRequests = users.stream()
+                .filter(u -> u.getRequestedRole() != null && !u.getRequestedRole().equals(u.getRole()))
+                .count();
 
-        map.put("latestTickets",
-                ticketRepository.findAll().stream().limit(5).toList()
-        );
+        map.put("pendingRoleRequests", pendingRoleRequests);
 
-        map.put("latestBookings",
-                bookingRepository.findAll().stream().limit(5).toList()
-        );
+        map.put("latestUsers", users.stream().limit(5).toList());
+        map.put("latestTickets", tickets.stream().limit(5).toList());
+        map.put("latestBookings", bookings.stream().limit(5).toList());
+
+        map.put("bookingsByStatus", bookings.stream()
+                .collect(Collectors.groupingBy(
+                        b -> b.getStatus() != null ? String.valueOf(b.getStatus()) : "UNKNOWN",
+                        Collectors.counting()
+                )));
+
+        map.put("ticketsByStatus", tickets.stream()
+                .collect(Collectors.groupingBy(
+                        t -> t.getStatus() != null ? String.valueOf(t.getStatus()) : "UNKNOWN",
+                        Collectors.counting()
+                )));
+
+        map.put("resourcesByType", resources.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getResourceType() != null ? String.valueOf(r.getResourceType()) : "UNKNOWN",
+                        Collectors.counting()
+                )));
+
+        map.put("usersByRole", users.stream()
+                .collect(Collectors.groupingBy(
+                        u -> u.getRole() != null ? String.valueOf(u.getRole()) : "UNKNOWN",
+                        Collectors.counting()
+                )));
 
         return map;
     }
