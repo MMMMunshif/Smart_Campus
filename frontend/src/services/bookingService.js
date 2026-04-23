@@ -62,3 +62,11 @@ export const getUserDashboardStats = async (email) => {
   });
   return response.data;
 };
+
+export const filterBookings = async (filters) => {
+  const response = await axios.get(`${API}/filter`, {
+    params: filters,
+    withCredentials: true,
+  });
+  return response.data;
+};

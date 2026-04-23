@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import AppLayout from "../components/layout/AppLayout";
 import { getDashboardSummary } from "../services/adminService";
@@ -25,6 +25,18 @@ import {
   FileSpreadsheet,
   ChevronDown,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 function Card({ title, value, icon: Icon, color, iconBg }) {
   return (
@@ -91,29 +103,11 @@ function ListItem({ title, subtitle, badge }) {
   );
 }
 
-function ExportMenuButton({
-  label,
-  colorClass,
-  hoverClass,
-  onCsv,
-  onPdf,
-}) {
+function ExportMenuButton({ label, colorClass, hoverClass, onCsv, onPdf }) {
   const [open, setOpen] = useState(false);
-  const wrapperRef = useRef(null);
-
-  useEffect(() => {
-    const handleOutside = (event) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative">
       <button
         onClick={() => setOpen((prev) => !prev)}
         className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-white font-semibold transition shadow-lg ${colorClass} ${hoverClass}`}
@@ -162,6 +156,15 @@ function ExportMenuButton({
   );
 }
 
+function mapToChartData(obj = {}) {
+  return Object.entries(obj).map(([name, value]) => ({
+    name,
+    value,
+  }));
+}
+
+const PIE_COLORS = ["#0ea5e9", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6"];
+
 function AdminDashboard() {
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -171,7 +174,7 @@ function AdminDashboard() {
       setRefreshing(true);
       const res = await getDashboardSummary();
       setData(res);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load dashboard");
     } finally {
       setRefreshing(false);
@@ -191,6 +194,11 @@ function AdminDashboard() {
       </AppLayout>
     );
   }
+
+  const bookingsChart = mapToChartData(data.bookingsByStatus);
+  const ticketsChart = mapToChartData(data.ticketsByStatus);
+  const resourcesChart = mapToChartData(data.resourcesByType);
+  const usersChart = mapToChartData(data.usersByRole);
 
   return (
     <AppLayout title="Admin Dashboard">
@@ -222,41 +230,11 @@ function AdminDashboard() {
         </div>
 
         <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-5">
-          <Card
-            title="Users"
-            value={data.totalUsers}
-            icon={Users}
-            color="text-sky-600 dark:text-sky-400"
-            iconBg="bg-sky-100 dark:bg-sky-900/30"
-          />
-          <Card
-            title="Resources"
-            value={data.totalResources}
-            icon={Building2}
-            color="text-cyan-600 dark:text-cyan-400"
-            iconBg="bg-cyan-100 dark:bg-cyan-900/30"
-          />
-          <Card
-            title="Bookings"
-            value={data.totalBookings}
-            icon={CalendarCheck}
-            color="text-emerald-600 dark:text-emerald-400"
-            iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-          />
-          <Card
-            title="Tickets"
-            value={data.totalTickets}
-            icon={ClipboardList}
-            color="text-amber-600 dark:text-amber-400"
-            iconBg="bg-amber-100 dark:bg-amber-900/30"
-          />
-          <Card
-            title="Pending Roles"
-            value={data.pendingRoleRequests}
-            icon={ShieldCheck}
-            color="text-rose-600 dark:text-rose-400"
-            iconBg="bg-rose-100 dark:bg-rose-900/30"
-          />
+          <Card title="Users" value={data.totalUsers} icon={Users} color="text-sky-600 dark:text-sky-400" iconBg="bg-sky-100 dark:bg-sky-900/30" />
+          <Card title="Resources" value={data.totalResources} icon={Building2} color="text-cyan-600 dark:text-cyan-400" iconBg="bg-cyan-100 dark:bg-cyan-900/30" />
+          <Card title="Bookings" value={data.totalBookings} icon={CalendarCheck} color="text-emerald-600 dark:text-emerald-400" iconBg="bg-emerald-100 dark:bg-emerald-900/30" />
+          <Card title="Tickets" value={data.totalTickets} icon={ClipboardList} color="text-amber-600 dark:text-amber-400" iconBg="bg-amber-100 dark:bg-amber-900/30" />
+          <Card title="Pending Roles" value={data.pendingRoleRequests} icon={ShieldCheck} color="text-rose-600 dark:text-rose-400" iconBg="bg-rose-100 dark:bg-rose-900/30" />
         </div>
 
         <SectionCard
@@ -264,31 +242,83 @@ function AdminDashboard() {
           subtitle="Download real-time reports in CSV or professional PDF format."
         >
           <div className="grid md:grid-cols-3 gap-4">
-            <ExportMenuButton
-              label="Bookings"
-              colorClass="bg-sky-500"
-              hoverClass="hover:bg-sky-600"
-              onCsv={exportBookingsReport}
-              onPdf={exportBookingsPdf}
-            />
-
-            <ExportMenuButton
-              label="Tickets"
-              colorClass="bg-amber-500"
-              hoverClass="hover:bg-amber-600"
-              onCsv={exportTicketsReport}
-              onPdf={exportTicketsPdf}
-            />
-
-            <ExportMenuButton
-              label="Resources"
-              colorClass="bg-emerald-500"
-              hoverClass="hover:bg-emerald-600"
-              onCsv={exportResourcesReport}
-              onPdf={exportResourcesPdf}
-            />
+            <ExportMenuButton label="Bookings" colorClass="bg-sky-500" hoverClass="hover:bg-sky-600" onCsv={exportBookingsReport} onPdf={exportBookingsPdf} />
+            <ExportMenuButton label="Tickets" colorClass="bg-amber-500" hoverClass="hover:bg-amber-600" onCsv={exportTicketsReport} onPdf={exportTicketsPdf} />
+            <ExportMenuButton label="Resources" colorClass="bg-emerald-500" hoverClass="hover:bg-emerald-600" onCsv={exportResourcesReport} onPdf={exportResourcesPdf} />
           </div>
         </SectionCard>
+
+        <div className="grid xl:grid-cols-2 gap-6">
+          <SectionCard title="Bookings by Status" subtitle="Overall booking distribution across the system.">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={bookingsChart}>
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Tickets by Status" subtitle="Issue and maintenance request status overview.">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={ticketsChart}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={110}
+                    label
+                  >
+                    {ticketsChart.map((entry, index) => (
+                      <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Resources by Type" subtitle="Available resource categories in the system.">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={resourcesChart}>
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Users by Role" subtitle="System access role distribution.">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={usersChart}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={110}
+                    label
+                  >
+                    {usersChart.map((entry, index) => (
+                      <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+        </div>
 
         <div className="grid xl:grid-cols-3 gap-6">
           <SectionCard
