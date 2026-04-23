@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import AppLayout from "../components/layout/AppLayout";
-import { getUserDashboardStats } from "../services/bookingService";
+import {
+  getUserDashboardStats,
+  getUpcomingBookings,
+} from "../services/bookingService";
 import { useAuth } from "../context/AuthContext";
 import {
   Clock3,
@@ -11,6 +14,8 @@ import {
   ClipboardList,
   ShieldAlert,
   ArrowRight,
+  CalendarDays,
+  Building2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -42,19 +47,41 @@ function UserDashboard() {
     cancelledBookings: 0,
   });
 
+  const [upcomingBookings, setUpcomingBookings] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [upcomingLoading, setUpcomingLoading] = useState(true);
+
   useEffect(() => {
-    const load = async () => {
+    const loadStats = async () => {
       if (!user?.email) return;
 
       try {
+        setStatsLoading(true);
         const data = await getUserDashboardStats(user.email);
         setStats(data);
       } catch {
-        toast.error("Failed to load dashboard");
+        toast.error("Failed to load booking statistics");
+      } finally {
+        setStatsLoading(false);
       }
     };
 
-    load();
+    const loadUpcomingBookings = async () => {
+      if (!user?.email) return;
+
+      try {
+        setUpcomingLoading(true);
+        const data = await getUpcomingBookings(user.email);
+        setUpcomingBookings(Array.isArray(data) ? data : []);
+      } catch {
+        setUpcomingBookings([]);
+      } finally {
+        setUpcomingLoading(false);
+      }
+    };
+
+    loadStats();
+    loadUpcomingBookings();
   }, [user]);
 
   const showPendingApprovalCard = useMemo(() => {
@@ -75,6 +102,24 @@ function UserDashboard() {
     );
   }, [user]);
 
+  const getStatusBadge = (status) => {
+    const base =
+      "rounded-full px-3 py-1 text-xs font-semibold inline-flex items-center gap-1.5";
+
+    switch (status) {
+      case "PENDING":
+        return `${base} bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400`;
+      case "APPROVED":
+        return `${base} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400`;
+      case "REJECTED":
+        return `${base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`;
+      case "CANCELLED":
+        return `${base} bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300`;
+      default:
+        return `${base} bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300`;
+    }
+  };
+
   return (
     <AppLayout title="Dashboard" role="USER">
       <div className="space-y-6">
@@ -88,7 +133,8 @@ function UserDashboard() {
           </p>
 
           <p className="mt-5 text-white/90">
-            Manage your campus bookings, notifications, and requests from one place.
+            Manage your campus bookings, notifications, and requests from one
+            place.
           </p>
         </div>
 
@@ -105,7 +151,9 @@ function UserDashboard() {
                     Role Request Under Review
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-amber-700 dark:text-amber-400 max-w-3xl">
-                    You requested <strong>{user?.requestedRole}</strong> access. Your request is still pending admin approval, so you are currently using the normal user dashboard.
+                    You requested <strong>{user?.requestedRole}</strong> access.
+                    Your request is still pending admin approval, so you are
+                    currently using the normal user dashboard.
                   </p>
                 </div>
               </div>
@@ -133,7 +181,9 @@ function UserDashboard() {
                   Role Request Not Approved
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-rose-700 dark:text-rose-400 max-w-3xl">
-                  Your request for <strong>{user?.requestedRole}</strong> access was not approved. You can continue using the system with normal user access.
+                  Your request for <strong>{user?.requestedRole}</strong> access
+                  was not approved. You can continue using the system with normal
+                  user access.
                 </p>
               </div>
             </div>
@@ -180,18 +230,60 @@ function UserDashboard() {
 
         <div className="grid xl:grid-cols-2 gap-6">
           <div className="rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-6 transition-colors duration-300">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-              Quick Overview
-            </h3>
-            <p className="mt-2 text-slate-500 dark:text-slate-400">
-              Keep track of your reservations and account activity from one place.
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-sky-100 dark:bg-sky-900/30 p-3 text-sky-600 dark:text-sky-400">
+                <CalendarDays size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                  Upcoming Bookings
+                </h3>
+                <p className="mt-1 text-slate-500 dark:text-slate-400">
+                  Your next scheduled reservations
+                </p>
+              </div>
+            </div>
 
-            <div className="mt-5 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-              <p>• View all your booking requests and their current status.</p>
-              <p>• Check notifications for approvals, rejections, and updates.</p>
-              <p>• Open your booking calendar to see upcoming reservations clearly.</p>
-              <p>• Update your profile details and photo anytime.</p>
+            <div className="mt-5 space-y-4">
+              {upcomingLoading ? (
+                <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-6 text-center text-slate-500 dark:text-slate-400">
+                  Loading upcoming bookings...
+                </div>
+              ) : upcomingBookings.length === 0 ? (
+                <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-6 text-center text-slate-500 dark:text-slate-400">
+                  No upcoming bookings found.
+                </div>
+              ) : (
+                upcomingBookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className="rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-5"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-800 dark:text-white font-bold">
+                          <Building2 size={16} className="text-sky-500" />
+                          {booking.resourceName}
+                        </div>
+
+                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                          {booking.bookingDate} • {booking.startTime} - {booking.endTime}
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                          {booking.purpose}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className={getStatusBadge(booking.status)}>
+                          {booking.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

@@ -64,8 +64,16 @@ export const getUserDashboardStats = async (email) => {
 };
 
 export const filterBookings = async (filters) => {
-  const response = await axios.get(`${API}/filter`, {
+  const response = await axios.get(`${API_BASE_URL}/filter`, {
     params: filters,
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+export const getUpcomingBookings = async (email) => {
+  const response = await axios.get(`${API_BASE_URL}/upcoming`, {
+    params: { email },
     withCredentials: true,
   });
   return response.data;

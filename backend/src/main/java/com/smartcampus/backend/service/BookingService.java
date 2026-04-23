@@ -36,15 +36,21 @@ public class BookingService {
                 Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED)
         );
 
-        for (Booking existing : existingBookings) {
-            boolean isConflict =
-                    booking.getStartTime().isBefore(existing.getEndTime()) &&
-                    booking.getEndTime().isAfter(existing.getStartTime());
+       for (Booking existing : existingBookings) {
+    boolean isConflict =
+            booking.getStartTime().isBefore(existing.getEndTime()) &&
+            booking.getEndTime().isAfter(existing.getStartTime());
 
-            if (isConflict) {
-                throw new RuntimeException("Booking conflict: This resource is already booked for the selected time.");
-            }
-        }
+    if (isConflict) {
+        throw new RuntimeException(
+                "Booking conflict: " + booking.getResourceName()
+                        + " is already booked on " + booking.getBookingDate()
+                        + " from " + existing.getStartTime()
+                        + " to " + existing.getEndTime()
+                        + ". Please choose a different time slot."
+        );
+    }
+}
 
         Resource resource = resourceRepository.findByResourceName(booking.getResourceName())
                 .orElseThrow(() -> new RuntimeException("Selected resource not found."));
@@ -178,4 +184,15 @@ public class BookingService {
 
         return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
     }
+
+    public List<Booking> getUpcomingBookings(String userEmail) {
+    return bookingRepository
+            .findByUserEmailAndBookingDateGreaterThanEqualOrderByBookingDateAscStartTimeAsc(
+                    userEmail,
+                    LocalDate.now()
+            )
+            .stream()
+            .limit(3)
+            .toList();
+}
 }
