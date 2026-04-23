@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -13,12 +12,19 @@ import org.springframework.stereotype.Service;
 import com.smartcampus.backend.dto.BookingDashboardStats;
 import com.smartcampus.backend.entity.Booking;
 import com.smartcampus.backend.enums.BookingStatus;
+import com.smartcampus.backend.enums.NotificationType;
 import com.smartcampus.backend.repository.BookingRepository;
+
 @Service
 public class BookingService {
 
-    @Autowired
-    private BookingRepository bookingRepository;
+    private final BookingRepository bookingRepository;
+    private final NotificationService notificationService;
+
+    public BookingService(BookingRepository bookingRepository, NotificationService notificationService) {
+        this.bookingRepository = bookingRepository;
+        this.notificationService = notificationService;
+    }
 
     public Booking createBooking(Booking booking) {
         List<Booking> existingBookings = bookingRepository.findByResourceNameAndBookingDateAndStatusIn(
@@ -41,7 +47,17 @@ public class BookingService {
         booking.setCreatedAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.notifyUser(
+                saved.getUserEmail(),
+                "Booking Submitted",
+                "Your request for " + saved.getResourceName() + " on " + saved.getBookingDate() + " is pending review.",
+                NotificationType.BOOKING_CREATED);
+        notificationService.notifyAdmins(
+                "New Booking Request",
+                saved.getUserName() + " submitted a booking for " + saved.getResourceName() + ".",
+                NotificationType.BOOKING_CREATED);
+        return saved;
     }
 
     public List<Booking> getAllBookings() {
@@ -49,8 +65,8 @@ public class BookingService {
     }
 
     public List<Booking> getBookingsByUserEmail(String userEmail) {
-    return bookingRepository.findByUserEmail(userEmail);
-}
+        return bookingRepository.findByUserEmail(userEmail);
+    }
 
     public List<Booking> getBookingsByStatus(BookingStatus status) {
         return bookingRepository.findByStatus(status);
@@ -79,7 +95,13 @@ public class BookingService {
         booking.setStatus(BookingStatus.APPROVED);
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.notifyUser(
+                saved.getUserEmail(),
+                "Booking Approved",
+                "Your booking for " + saved.getResourceName() + " on " + saved.getBookingDate() + " has been approved.",
+                NotificationType.BOOKING_UPDATED);
+        return saved;
     }
 
     public Booking rejectBooking(Long id, String note) {
@@ -94,7 +116,13 @@ public class BookingService {
         booking.setAdminNote(note);
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.notifyUser(
+                saved.getUserEmail(),
+                "Booking Rejected",
+                "Your booking for " + saved.getResourceName() + " was rejected. Note: " + note,
+                NotificationType.BOOKING_UPDATED);
+        return saved;
     }
 
     public Booking cancelBooking(Long id) {
@@ -108,26 +136,32 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setUpdatedAt(LocalDateTime.now());
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.notifyUser(
+                saved.getUserEmail(),
+                "Booking Cancelled",
+                "Your booking for " + saved.getResourceName() + " on " + saved.getBookingDate() + " was cancelled.",
+                NotificationType.BOOKING_UPDATED);
+        return saved;
     }
 
     public BookingDashboardStats getAdminDashboardStats() {
-    long total = bookingRepository.count();
-    long pending = bookingRepository.countByStatus(BookingStatus.PENDING);
-    long approved = bookingRepository.countByStatus(BookingStatus.APPROVED);
-    long rejected = bookingRepository.countByStatus(BookingStatus.REJECTED);
-    long cancelled = bookingRepository.countByStatus(BookingStatus.CANCELLED);
+        long total = bookingRepository.count();
+        long pending = bookingRepository.countByStatus(BookingStatus.PENDING);
+        long approved = bookingRepository.countByStatus(BookingStatus.APPROVED);
+        long rejected = bookingRepository.countByStatus(BookingStatus.REJECTED);
+        long cancelled = bookingRepository.countByStatus(BookingStatus.CANCELLED);
 
-    return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
-}
+        return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
+    }
 
-public BookingDashboardStats getUserDashboardStats(String userEmail) {
-    long total = bookingRepository.countByUserEmail(userEmail);
-    long pending = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.PENDING);
-    long approved = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.APPROVED);
-    long rejected = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.REJECTED);
-    long cancelled = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.CANCELLED);
+    public BookingDashboardStats getUserDashboardStats(String userEmail) {
+        long total = bookingRepository.countByUserEmail(userEmail);
+        long pending = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.PENDING);
+        long approved = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.APPROVED);
+        long rejected = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.REJECTED);
+        long cancelled = bookingRepository.countByUserEmailAndStatus(userEmail, BookingStatus.CANCELLED);
 
-    return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
-}
+        return new BookingDashboardStats(total, pending, approved, rejected, cancelled);
+    }
 }

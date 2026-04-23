@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import AppLayout from "../components/layout/AppLayout";
 import { getUserDashboardStats } from "../services/bookingService";
+import { getAuth } from "../utils/auth";
 
 function StatCard({ title, value, color }) {
   return (
@@ -13,7 +14,8 @@ function StatCard({ title, value, color }) {
 }
 
 function UserDashboard() {
-  const [email, setEmail] = useState("affan@gmail.com");
+  const auth = getAuth();
+  const [email, setEmail] = useState(auth?.email || "");
   const [stats, setStats] = useState({
     totalBookings: 0,
     pendingBookings: 0,
@@ -45,6 +47,7 @@ function UserDashboard() {
             onChange={(e) => setEmail(e.target.value)}
             className="flex-1 rounded-xl border p-3"
             placeholder="Enter your email"
+            readOnly
           />
           <button
             onClick={loadStats}
