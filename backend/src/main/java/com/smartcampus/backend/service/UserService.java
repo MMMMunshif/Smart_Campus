@@ -26,6 +26,9 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private NotificationService notificationService;
+
     public User registerUser(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
@@ -69,6 +72,11 @@ public class UserService {
             user.setApprovalStatus(ApprovalStatus.NONE);
         } else {
             user.setApprovalStatus(ApprovalStatus.PENDING);
+
+            notificationService.createAdminNotification(
+                    "New Role Request",
+                    user.getName() + " requested " + requestedRole + " access."
+            );
         }
 
         return userRepository.save(user);
@@ -90,17 +98,35 @@ public class UserService {
         user.setRole(user.getRequestedRole());
         user.setApprovalStatus(ApprovalStatus.APPROVED);
 
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+
+        notificationService.createNotification(
+                user.getEmail(),
+                "Role Request Approved",
+                "Your request for " + user.getRole() + " access has been approved."
+        );
+
+        return updatedUser;
     }
 
     public User rejectRoleRequest(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        Role rejectedRole = user.getRequestedRole();
+
         user.setRequestedRole(Role.USER);
         user.setApprovalStatus(ApprovalStatus.REJECTED);
 
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+
+        notificationService.createNotification(
+                user.getEmail(),
+                "Role Request Rejected",
+                "Your request for " + rejectedRole + " access was rejected."
+        );
+
+        return updatedUser;
     }
 
     public List<User> getUsersByRole(Role role) {
@@ -108,38 +134,39 @@ public class UserService {
     }
 
     public User updateProfile(
-        String email,
-        String phone,
-        String faculty,
-        String studentOrStaffId,
-        String userType,
-        String bio,
-        MultipartFile profilePhoto
-) throws IOException {
+            String email,
+            String phone,
+            String faculty,
+            String studentOrStaffId,
+            String userType,
+            String bio,
+            MultipartFile profilePhoto
+    ) throws IOException {
 
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    user.setPhone(phone);
-    user.setFaculty(faculty);
-    user.setStudentOrStaffId(studentOrStaffId);
-    user.setUserType(userType);
-    user.setBio(bio);
+        user.setPhone(phone);
+        user.setFaculty(faculty);
+        user.setStudentOrStaffId(studentOrStaffId);
+        user.setUserType(userType);
+        user.setBio(bio);
 
-    if (profilePhoto != null && !profilePhoto.isEmpty()) {
-        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads";
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            String uploadDir = System.getProperty("user.dir") + File.separator + "uploads";
+            File dir = new File(uploadDir);
+
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            String fileName = UUID.randomUUID() + "_" + profilePhoto.getOriginalFilename();
+            File destination = new File(uploadDir, fileName);
+            profilePhoto.transferTo(destination);
+
+            user.setProfilePhoto("/uploads/" + fileName);
         }
 
-        String fileName = UUID.randomUUID() + "_" + profilePhoto.getOriginalFilename();
-        File destination = new File(uploadDir, fileName);
-        profilePhoto.transferTo(destination);
-
-        user.setProfilePhoto("/uploads/" + fileName);
+        return userRepository.save(user);
     }
-
-    return userRepository.save(user);
-}
 }
