@@ -1,9 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: "Manrope", "Trebuchet MS", sans-serif;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8fafc;
+  background: #f1f5f9;
+  color: #0f172a;
 }

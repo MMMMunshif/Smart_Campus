@@ -2,11 +2,16 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { createBooking } from "../services/bookingService";
 import AppLayout from "../components/layout/AppLayout";
+import { getAuth } from "../utils/auth";
 
 function BookingPage() {
+  const auth = getAuth();
+  const defaultName = auth?.name || "";
+  const defaultEmail = auth?.email || "";
+
   const [formData, setFormData] = useState({
-    userName: "",
-    userEmail: "",
+    userName: defaultName,
+    userEmail: defaultEmail,
     resourceName: "",
     bookingDate: "",
     startTime: "",
@@ -41,8 +46,8 @@ function BookingPage() {
       toast.success("Booking submitted successfully!");
 
       setFormData({
-        userName: "",
-        userEmail: "",
+        userName: defaultName,
+        userEmail: defaultEmail,
         resourceName: "",
         bookingDate: "",
         startTime: "",
@@ -76,6 +81,7 @@ function BookingPage() {
               onChange={handleChange}
               className="rounded-xl border p-3"
               placeholder="User Name"
+              readOnly
               required
             />
             <input
@@ -84,6 +90,7 @@ function BookingPage() {
               onChange={handleChange}
               className="rounded-xl border p-3"
               placeholder="User Email"
+              readOnly
               required
             />
             <input

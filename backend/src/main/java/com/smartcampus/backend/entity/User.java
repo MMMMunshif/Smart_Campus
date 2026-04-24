@@ -30,9 +30,14 @@ public class User {
     private String name;
 
     @Column(unique = true, nullable = false)
+    private String username;
+
+    @Column(unique = true, nullable = false)
     private String email;
 
     private String password;
+
+    private String profileImageUrl;
 
     @Enumerated(EnumType.STRING)
     private Role role;

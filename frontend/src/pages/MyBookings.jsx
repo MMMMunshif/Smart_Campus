@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import AppLayout from "../components/layout/AppLayout";
 import { getBookingsByUserEmail } from "../services/bookingService";
+import { getAuth } from "../utils/auth";
 
 function MyBookings() {
+  const auth = getAuth();
+  const defaultEmail = auth?.email || "";
+
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("affan@gmail.com");
+  const [email, setEmail] = useState(defaultEmail);
 
   const loadMyBookings = async () => {
     try {
@@ -59,6 +63,7 @@ function MyBookings() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             className="flex-1 rounded-xl border p-3"
+            readOnly
           />
           <button
             onClick={handleSearch}
