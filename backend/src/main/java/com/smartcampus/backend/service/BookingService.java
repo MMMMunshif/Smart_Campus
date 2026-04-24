@@ -30,34 +30,36 @@ public class BookingService {
     private ResourceRepository resourceRepository;
 
     public Booking createBooking(Booking booking) {
-        List<Booking> existingBookings = bookingRepository.findByResourceNameAndBookingDateAndStatusIn(
-                booking.getResourceName(),
-                booking.getBookingDate(),
-                Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED)
-        );
+        List<Booking> existingBookings =
+                bookingRepository.findByResourceNameAndBookingDateAndStatusIn(
+                        booking.getResourceName(),
+                        booking.getBookingDate(),
+                        Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED)
+                );
 
-       for (Booking existing : existingBookings) {
-    boolean isConflict =
-            booking.getStartTime().isBefore(existing.getEndTime()) &&
-            booking.getEndTime().isAfter(existing.getStartTime());
+        for (Booking existing : existingBookings) {
+            boolean isConflict =
+                    booking.getStartTime().isBefore(existing.getEndTime()) &&
+                    booking.getEndTime().isAfter(existing.getStartTime());
 
-    if (isConflict) {
-        throw new RuntimeException(
-                "Booking conflict: " + booking.getResourceName()
-                        + " is already booked on " + booking.getBookingDate()
-                        + " from " + existing.getStartTime()
-                        + " to " + existing.getEndTime()
-                        + ". Please choose a different time slot."
-        );
-    }
-}
+            if (isConflict) {
+                throw new RuntimeException(
+                        "Booking conflict: " + booking.getResourceName()
+                                + " is already booked on " + booking.getBookingDate()
+                                + " from " + existing.getStartTime()
+                                + " to " + existing.getEndTime()
+                                + ". Please choose a different time slot."
+                );
+            }
+        }
 
         Resource resource = resourceRepository.findByResourceName(booking.getResourceName())
                 .orElseThrow(() -> new RuntimeException("Selected resource not found."));
 
         if (booking.getExpectedAttendees() > resource.getCapacity()) {
             throw new RuntimeException(
-                    "Booking failed: Expected attendees exceed the resource capacity of " + resource.getCapacity() + "."
+                    "Booking failed: Expected attendees exceed the resource capacity of "
+                            + resource.getCapacity() + "."
             );
         }
 
@@ -70,8 +72,15 @@ public class BookingService {
         notificationService.createNotification(
                 booking.getUserEmail(),
                 "Booking Submitted",
-                "Your booking request for " + booking.getResourceName() + " on " +
-                        booking.getBookingDate() + " has been submitted and is pending review."
+                "Your booking request for " + booking.getResourceName() + " on "
+                        + booking.getBookingDate() + " has been submitted and is pending review."
+        );
+
+        notificationService.createAdminNotification(
+                "New Booking Request",
+                booking.getUserName() + " submitted a booking request for "
+                        + booking.getResourceName() + " on " + booking.getBookingDate()
+                        + " from " + booking.getStartTime() + " to " + booking.getEndTime() + "."
         );
 
         return savedBooking;
@@ -112,14 +121,16 @@ public class BookingService {
         booking.setStatus(BookingStatus.APPROVED);
         booking.setUpdatedAt(LocalDateTime.now());
 
+        Booking updatedBooking = bookingRepository.save(booking);
+
         notificationService.createNotification(
                 booking.getUserEmail(),
                 "Booking Approved",
-                "Your booking for " + booking.getResourceName() + " on " +
-                        booking.getBookingDate() + " has been approved."
+                "Your booking for " + booking.getResourceName() + " on "
+                        + booking.getBookingDate() + " has been approved."
         );
 
-        return bookingRepository.save(booking);
+        return updatedBooking;
     }
 
     public Booking rejectBooking(Long id, String note) {
@@ -134,14 +145,16 @@ public class BookingService {
         booking.setAdminNote(note);
         booking.setUpdatedAt(LocalDateTime.now());
 
+        Booking updatedBooking = bookingRepository.save(booking);
+
         notificationService.createNotification(
                 booking.getUserEmail(),
                 "Booking Rejected",
-                "Your booking for " + booking.getResourceName() + " on " +
-                        booking.getBookingDate() + " was rejected. Reason: " + note
+                "Your booking for " + booking.getResourceName() + " on "
+                        + booking.getBookingDate() + " was rejected. Reason: " + note
         );
 
-        return bookingRepository.save(booking);
+        return updatedBooking;
     }
 
     public Booking cancelBooking(Long id) {
@@ -155,14 +168,16 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setUpdatedAt(LocalDateTime.now());
 
+        Booking updatedBooking = bookingRepository.save(booking);
+
         notificationService.createNotification(
                 booking.getUserEmail(),
                 "Booking Cancelled",
-                "Your booking for " + booking.getResourceName() + " on " +
-                        booking.getBookingDate() + " has been cancelled."
+                "Your booking for " + booking.getResourceName() + " on "
+                        + booking.getBookingDate() + " has been cancelled."
         );
 
-        return bookingRepository.save(booking);
+        return updatedBooking;
     }
 
     public BookingDashboardStats getAdminDashboardStats() {
@@ -186,13 +201,13 @@ public class BookingService {
     }
 
     public List<Booking> getUpcomingBookings(String userEmail) {
-    return bookingRepository
-            .findByUserEmailAndBookingDateGreaterThanEqualOrderByBookingDateAscStartTimeAsc(
-                    userEmail,
-                    LocalDate.now()
-            )
-            .stream()
-            .limit(3)
-            .toList();
-}
+        return bookingRepository
+                .findByUserEmailAndBookingDateGreaterThanEqualOrderByBookingDateAscStartTimeAsc(
+                        userEmail,
+                        LocalDate.now()
+                )
+                .stream()
+                .limit(3)
+                .toList();
+    }
 }

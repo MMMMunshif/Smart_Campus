@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import AppLayout from "../components/layout/AppLayout";
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +18,8 @@ import {
 
 function BookingPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const resourceFromUrl = searchParams.get("resource");
 
   const [resources, setResources] = useState([]);
   const [loadingResources, setLoadingResources] = useState(true);
@@ -73,6 +76,21 @@ function BookingPage() {
       loadResources();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!resourceFromUrl || resources.length === 0) return;
+
+    const matchedResource = resources.find(
+      (resource) => resource.resourceName === resourceFromUrl
+    );
+
+    if (matchedResource) {
+      setFormData((prev) => ({
+        ...prev,
+        resourceName: matchedResource.resourceName,
+      }));
+    }
+  }, [resourceFromUrl, resources]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -213,13 +231,33 @@ function BookingPage() {
   return (
     <AppLayout title="Create Booking">
       <div className="max-w-6xl space-y-6">
-        <div className="rounded-[2rem] bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-500 p-8 text-white shadow-2xl">
-          <h1 className="text-4xl font-extrabold">Book a Campus Resource</h1>
-          <p className="mt-3 text-blue-50 text-lg">
-            Reserve halls, labs, meeting rooms, and other available campus
-            resources through a clean and professional booking flow.
-          </p>
+        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-indigo-600 via-sky-600 to-cyan-500 p-8 text-white shadow-2xl">
+          <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-300/20 blur-2xl" />
+
+          <div className="relative">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
+              <CalendarDays size={16} />
+              Resource Booking
+            </div>
+
+            <h1 className="text-4xl font-extrabold tracking-tight">
+              Book a Campus Resource
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-blue-50 text-lg leading-8">
+              Reserve lecture halls, laboratories, meeting rooms, and other
+              available campus resources with conflict protection.
+            </p>
+          </div>
         </div>
+
+        {resourceFromUrl && (
+          <div className="rounded-[1.5rem] border border-sky-200 bg-sky-50 px-5 py-4 text-sky-700 shadow-sm dark:border-sky-900/40 dark:bg-sky-900/20 dark:text-sky-400">
+            Resource selected from catalogue:{" "}
+            <span className="font-bold">{resourceFromUrl}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 rounded-[2rem] bg-white dark:bg-slate-900 p-8 shadow-xl border border-slate-200 dark:border-slate-800 transition-colors duration-300">
@@ -254,6 +292,7 @@ function BookingPage() {
                   <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Select Resource
                   </label>
+
                   <select
                     name="resourceName"
                     value={formData.resourceName}
@@ -266,6 +305,7 @@ function BookingPage() {
                         ? "Loading available resources..."
                         : "Choose a resource"}
                     </option>
+
                     {resources.map((resource) => (
                       <option key={resource.id} value={resource.resourceName}>
                         {resource.resourceName} — {resource.location}

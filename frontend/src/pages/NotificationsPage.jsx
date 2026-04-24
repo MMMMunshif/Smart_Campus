@@ -163,7 +163,7 @@ function NotificationsPage() {
   ];
 
   return (
-    <AppLayout title="Notifications" role="USER">
+    <AppLayout title="Notifications" role={user?.role || "USER"}>
       <div className="max-w-4xl space-y-6">
 
         {/* ── Hero Banner ── */}
