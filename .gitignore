@@ -1,0 +1,10 @@
+# Runtime logs
+backend/*.log
+frontend/*.log
+
+# Local build cache
+backend/.m2/
+
+# Local frontend env
+frontend/.env
+frontend/.env.local
