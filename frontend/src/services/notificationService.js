@@ -3,8 +3,9 @@ import axios from "axios";
 const NOTIFICATION_API_URL = "http://localhost:8080/api/notifications";
 
 export const getNotificationsByEmail = async (email) => {
-  const response = await axios.get(NOTIFICATION_API_URL, {
+  const response = await axios.get("http://localhost:8080/api/notifications", {
     params: { email },
+    withCredentials: true,
   });
   return response.data;
 };

@@ -55,3 +55,21 @@ export const updateTicketStatus = async (id, status, technicianNote) => {
   );
   return response.data;
 };
+
+export const createTicketWithAttachment = async (formData) => {
+  const response = await axios.post(`${TICKET_API}/with-attachment`, formData, {
+    withCredentials: true,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};
+
+export const getTicketHistory = async (id) => {
+  const response = await axios.get(`${TICKET_API}/${id}/history`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
