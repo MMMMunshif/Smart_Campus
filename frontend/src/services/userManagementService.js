@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getAuthToken } from "../utils/auth";
 
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 const api = axios.create({
   baseURL: `${BACKEND_BASE_URL}/api/admin/users`,
 });
