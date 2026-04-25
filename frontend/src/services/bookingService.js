@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getAuthToken } from "../utils/auth";
 
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
 const api = axios.create({
   baseURL: `${BACKEND_BASE_URL}/api`,
 });
@@ -66,6 +66,27 @@ export const getBookingsByUserEmail = async (email) => {
 export const getAdminDashboardStats = async () => {
   const response = await api.get("/bookings/dashboard/admin");
   return response.data;
+};
+
+export const getAdminAnalytics = async () => {
+  const response = await api.get("/bookings/dashboard/admin/analytics");
+  return response.data;
+};
+
+export const downloadAdminReport = async (reportType) => {
+  const response = await api.get(`/bookings/dashboard/admin/report/${reportType}`, {
+    responseType: "blob",
+  });
+
+  const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: "text/csv" }));
+  const link = document.createElement("a");
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  link.href = blobUrl;
+  link.download = `${reportType}-report-${timestamp}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
 };
 
 export const getUserDashboardStats = async (email) => {
