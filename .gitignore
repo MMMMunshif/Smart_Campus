@@ -8,3 +8,5 @@ backend/.m2/
 # Local frontend env
 frontend/.env
 frontend/.env.local
+config.bat
+node_modules
